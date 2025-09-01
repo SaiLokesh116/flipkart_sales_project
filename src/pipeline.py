@@ -9,10 +9,6 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 
-
-# ----------------------------
-# Data Loading
-# ----------------------------
 def load_and_merge_datasets(raw_dir: str) -> pd.DataFrame:
     """Load CSV, JSON, and Excel files from raw_dir and merge into a single DataFrame."""
     import os
@@ -39,8 +35,6 @@ def load_and_merge_datasets(raw_dir: str) -> pd.DataFrame:
         except Exception as e:
             print(f"[PIPELINE] Could not read {file}: {e}")
             continue
-
-        # ✅ Skip invalid datasets
         if not required.issubset(df.columns):
             missing = required - set(df.columns)
             print(f"[PIPELINE] Skipping {file} (missing {missing})")
@@ -54,29 +48,24 @@ def load_and_merge_datasets(raw_dir: str) -> pd.DataFrame:
 
     return pd.concat(frames, ignore_index=True)
 
-
-# ----------------------------
 # Data Cleaning
-# ----------------------------
+
 def clean_and_transform(df: pd.DataFrame) -> pd.DataFrame:
     """Clean and transform sales data."""
     df = df.copy()
-
-    # Ensure correct dtypes
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce").fillna(0).astype(int)
     df["unit_price"] = pd.to_numeric(df["unit_price"], errors="coerce").fillna(0.0)
     df["discount"] = pd.to_numeric(df["discount"], errors="coerce").fillna(0.0)
 
-    # Derived column: revenue
     df["revenue"] = df["quantity"] * df["unit_price"] * (1 - df["discount"])
 
     return df
 
 
-# ----------------------------
+
 # EDA & Reports
-# ----------------------------
+
 def analyze_sales(df: pd.DataFrame, out_dir: str):
     """Perform EDA and save reports & plots."""
     os.makedirs(out_dir, exist_ok=True)
@@ -94,9 +83,8 @@ def analyze_sales(df: pd.DataFrame, out_dir: str):
     product = df.groupby("product").agg({"revenue": "sum"}).reset_index()
     product.to_csv(os.path.join(out_dir, "product_sales.csv"), index=False)
 
-    # ----------------------------
     # Plots
-    # ----------------------------
+
     plt.figure(figsize=(8, 4))
     sns.lineplot(x="date", y="revenue", data=monthly, marker="o")
     plt.title("Monthly Sales Trend")
@@ -119,9 +107,6 @@ def analyze_sales(df: pd.DataFrame, out_dir: str):
     plt.savefig(os.path.join(out_dir, "product_sales.png"))
     plt.close()
 
-    # ----------------------------
-    # PDF Report
-    # ----------------------------
     pdf_path = os.path.join(out_dir, "summary_report.pdf")
     doc = SimpleDocTemplate(pdf_path)
     styles = getSampleStyleSheet()
@@ -130,7 +115,7 @@ def analyze_sales(df: pd.DataFrame, out_dir: str):
     flow.append(Paragraph("Flipkart Sales Report", styles["Title"]))
     flow.append(Spacer(1, 12))
 
-    # Add tables
+    # Adding the tables
     for name, table_df in [("Monthly Sales", monthly), ("Regional Sales", regional), ("Product Sales", product)]:
         flow.append(Paragraph(name, styles["Heading2"]))
         flow.append(Spacer(1, 6))
@@ -148,10 +133,8 @@ def analyze_sales(df: pd.DataFrame, out_dir: str):
     doc.build(flow)
     print(f"[PIPELINE] PDF report saved to {pdf_path}")
 
+# Running pipe line
 
-# ----------------------------
-# Runner
-# ----------------------------
 def run_pipeline(raw_dir: str, out_dir: str):
     print(f"[PIPELINE] Loading raw data from {os.path.abspath(raw_dir)} ...")
     df = load_and_merge_datasets(raw_dir)
