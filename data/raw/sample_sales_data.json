@@ -1,0 +1,5 @@
+[
+    {"date": "2023-01-01", "sales": 100, "region": "North"},
+    {"date": "2023-01-02", "sales": 150, "region": "South"},
+    {"date": "2023-01-03", "sales": 200, "region": "East"}
+]
